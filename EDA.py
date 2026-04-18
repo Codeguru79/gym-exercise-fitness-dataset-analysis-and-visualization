@@ -3,6 +3,7 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 from scipy.stats import ttest_ind, pearsonr, f_oneway
 
+
 df = pd.read_csv('gym_dataset_1000_rows.csv')
 
 print(df.head())
@@ -27,33 +28,28 @@ plt.figure(figsize=(10,8))
 sns.heatmap(df.corr(numeric_only=True), fmt = '.1f',annot=True)
 plt.title('Correlation Heatmap')
 plt.show()
-print("-----------------------------------------------------------------------------------")
 
 # This count plot shows how many people fall under each workout type
 sns.countplot(x='Workout_Type', data=df)
 plt.title('Count of Participants by Workout Type')
 plt.xticks(rotation=30)
 plt.show()
-print("-----------------------------------------------------------------------------------")
 
 # This count plot shows the distribution of experience levels among participants
 sns.countplot(x='Experience_Level', data=df)
 plt.title('Count by Experience Level')
 plt.show()
-print("-----------------------------------------------------------------------------------")
 
 # This count plot shows how frequently participants work out per week
 sns.countplot(x='Workout_Frequency (days/week)', data=df)
 plt.title('Workout Frequency Distribution')
 plt.show()
-print("-----------------------------------------------------------------------------------")
 
 
 # This count plot shows the number of male and female participants in the dataset
 sns.countplot(x='Gender', data=df)
 plt.title('Count of Participants by Gender')
 plt.show()
-print("-----------------------------------------------------------------------------------")
 
 
 for col in df_num.columns:
@@ -73,7 +69,20 @@ for col in df_num.columns:
     plt.ylabel(col)
     plt.show()
 
+print("-----------------------------------------------------------------------------------")
+print("Outlier Detection:")
+for col in df_num.columns:
+    Q1 = df[col].quantile(0.25)
+    Q3 = df[col].quantile(0.75)
+    IQR = Q3 - Q1
 
+    lower = Q1 - 1.5 * IQR
+    upper = Q3 + 1.5 * IQR
+
+    outliers = df[(df[col] < lower) | (df[col] > upper)]
+
+    print(f"\nOutliers in {col}:")
+    print(outliers[[col]])
 
 
 # This scatter plot shows the relationship between workout duration and calories burned
@@ -82,17 +91,8 @@ plt.title('Calories vs Session Duration')
 plt.show()
 
 
-
-
-# # This t-test checks whether there is a significant difference in calories burned between males and females
-# male = df[df['Gender']=='Male']['Calories_Burned']
-# female = df[df['Gender']=='Female']['Calories_Burned']
-# t_stat, p_val = ttest_ind(male, female)
-# print("T-test:", t_stat, p_val)
-
-
 # # This correlation test checks the strength and significance of the relationship between session duration and calories burned
-# corr, p_val = pearsonr(df['Session_Duration (hours)'], df['Calories_Burned'])
-# print("Correlation:", corr, p_val)
+corr, p_val = pearsonr(df['Session_Duration (hours)'], df['Calories_Burned'])
+print("Correlation:", corr, p_val)
 
 
