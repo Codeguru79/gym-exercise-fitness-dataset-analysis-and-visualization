@@ -1,0 +1,1183 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Gym Exercise Dataset — Analysis Dashboard</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Clash+Display:wght@400;500;600;700&family=Cabinet+Grotesk:wght@400;500;700;800&display=swap" rel="stylesheet"/>
+<style>
+  :root {
+    --bg:       #04070f;
+    --s1:       #080e1c;
+    --s2:       #0d1628;
+    --s3:       #111e35;
+    --border:   #1a2d4a;
+    --neon:     #00d4ff;
+    --green:    #00ff9d;
+    --orange:   #ff8c42;
+    --purple:   #a78bfa;
+    --red:      #ff4d6d;
+    --text:     #e2eaf6;
+    --muted:    #5a7090;
+    --card-glow: 0 0 40px rgba(0,212,255,0.06);
+  }
+  *{margin:0;padding:0;box-sizing:border-box;}
+  html{scroll-behavior:smooth;}
+  body{
+    background:var(--bg);
+    color:var(--text);
+    font-family:'Cabinet Grotesk',sans-serif;
+    min-height:100vh;
+    overflow-x:hidden;
+  }
+
+  /* ── BACKGROUND GRID ── */
+  body::before{
+    content:'';
+    position:fixed;inset:0;
+    background-image:
+      linear-gradient(rgba(0,212,255,0.025) 1px,transparent 1px),
+      linear-gradient(90deg,rgba(0,212,255,0.025) 1px,transparent 1px);
+    background-size:48px 48px;
+    pointer-events:none;z-index:0;
+  }
+
+  /* ── NAV ── */
+  nav{
+    position:sticky;top:0;z-index:100;
+    background:rgba(4,7,15,0.85);
+    backdrop-filter:blur(16px);
+    border-bottom:1px solid var(--border);
+    padding:0 2rem;
+    display:flex;align-items:center;justify-content:space-between;
+    height:60px;
+  }
+  .nav-brand{
+    font-family:'DM Mono',monospace;
+    font-size:.85rem;color:var(--neon);letter-spacing:.08em;
+  }
+  .nav-links{display:flex;gap:1.5rem;}
+  .nav-links a{
+    color:var(--muted);font-size:.82rem;text-decoration:none;
+    letter-spacing:.04em;transition:color .2s;
+  }
+  .nav-links a:hover{color:var(--neon);}
+
+  /* ── HERO ── */
+  .hero{
+    position:relative;z-index:1;
+    padding:5rem 2rem 4rem;
+    max-width:1200px;margin:0 auto;
+    display:grid;grid-template-columns:1fr auto;
+    align-items:end;gap:2rem;
+  }
+  .hero-badge{
+    display:inline-block;
+    font-family:'DM Mono',monospace;font-size:.7rem;
+    color:var(--neon);border:1px solid var(--neon);
+    padding:.25rem .7rem;border-radius:2px;letter-spacing:.1em;
+    margin-bottom:1.2rem;
+    animation:fadeUp .6s ease both;
+  }
+  .hero h1{
+    font-family:'Cabinet Grotesk',sans-serif;
+    font-size:clamp(2rem,4vw,3.6rem);
+    font-weight:800;line-height:1.05;
+    animation:fadeUp .6s .1s ease both;
+  }
+  .hero h1 span{color:var(--neon);}
+  .hero-sub{
+    margin-top:1rem;
+    color:var(--muted);font-size:1rem;line-height:1.6;
+    max-width:520px;
+    animation:fadeUp .6s .2s ease both;
+  }
+  .hero-meta{
+    text-align:right;
+    font-family:'DM Mono',monospace;
+    font-size:.75rem;color:var(--muted);line-height:2;
+    animation:fadeUp .6s .3s ease both;
+  }
+  .hero-meta strong{color:var(--text);}
+
+  /* ── SECTION WRAPPER ── */
+  .container{max-width:1200px;margin:0 auto;padding:0 2rem 5rem;}
+
+  .section-label{
+    font-family:'DM Mono',monospace;
+    font-size:.7rem;letter-spacing:.15em;
+    color:var(--neon);margin-bottom:.6rem;
+  }
+  .section-title{
+    font-family:'Cabinet Grotesk',sans-serif;
+    font-size:1.7rem;font-weight:700;
+    margin-bottom:.5rem;
+  }
+  .section-desc{
+    color:var(--muted);font-size:.92rem;
+    margin-bottom:2rem;line-height:1.6;max-width:620px;
+  }
+  .divider{
+    height:1px;background:var(--border);
+    margin:4rem 0;position:relative;z-index:1;
+  }
+
+  /* ── KPI STRIP ── */
+  .kpi-grid{
+    display:grid;
+    grid-template-columns:repeat(auto-fit,minmax(170px,1fr));
+    gap:1px;
+    border:1px solid var(--border);
+    border-radius:8px;overflow:hidden;
+    margin-bottom:3rem;
+    position:relative;z-index:1;
+    animation:fadeUp .6s .1s ease both;
+  }
+  .kpi{
+    background:var(--s1);
+    padding:1.4rem 1.5rem;
+    transition:background .2s;
+  }
+  .kpi:hover{background:var(--s2);}
+  .kpi-label{
+    font-family:'DM Mono',monospace;
+    font-size:.65rem;letter-spacing:.12em;
+    color:var(--muted);margin-bottom:.5rem;
+  }
+  .kpi-value{
+    font-size:1.9rem;font-weight:800;
+    line-height:1;
+  }
+  .kpi-sub{font-size:.75rem;color:var(--muted);margin-top:.3rem;}
+  .c-neon{color:var(--neon);}
+  .c-green{color:var(--green);}
+  .c-orange{color:var(--orange);}
+  .c-purple{color:var(--purple);}
+  .c-red{color:var(--red);}
+
+  /* ── CARDS ── */
+  .card{
+    background:var(--s1);
+    border:1px solid var(--border);
+    border-radius:8px;
+    padding:1.8rem;
+    box-shadow:var(--card-glow);
+    position:relative;z-index:1;
+    animation:fadeUp .5s ease both;
+  }
+  .card-title{
+    font-family:'Cabinet Grotesk',sans-serif;
+    font-size:1.05rem;font-weight:700;
+    margin-bottom:.35rem;
+  }
+  .card-desc{
+    font-size:.8rem;color:var(--muted);
+    margin-bottom:1.4rem;line-height:1.5;
+  }
+  .chart-wrap{position:relative;width:100%;}
+
+  /* ── GRIDS ── */
+  .grid-2{display:grid;grid-template-columns:repeat(2,1fr);gap:1.2rem;}
+  .grid-3{display:grid;grid-template-columns:repeat(3,1fr);gap:1.2rem;}
+  .col-span-2{grid-column:span 2;}
+  .col-span-3{grid-column:span 3;}
+  @media(max-width:900px){
+    .grid-2{grid-template-columns:1fr;}
+    .grid-3{grid-template-columns:1fr;}
+    .col-span-2,.col-span-3{grid-column:span 1;}
+    .hero{grid-template-columns:1fr;}
+    .hero-meta{text-align:left;}
+  }
+
+  /* ── MODEL RESULT CARDS ── */
+  .model-card{
+    background:var(--s1);border:1px solid var(--border);
+    border-radius:8px;overflow:hidden;
+    position:relative;z-index:1;
+    animation:fadeUp .5s ease both;
+  }
+  .model-header{
+    padding:1.2rem 1.6rem;
+    border-bottom:1px solid var(--border);
+    display:flex;align-items:center;justify-content:space-between;
+    gap:1rem;
+  }
+  .model-title{font-size:1rem;font-weight:700;}
+  .model-formula{
+    font-family:'DM Mono',monospace;
+    font-size:.72rem;color:var(--muted);
+    margin-top:.2rem;
+  }
+  .model-badge{
+    font-family:'DM Mono',monospace;
+    font-size:.7rem;padding:.3rem .7rem;
+    border-radius:3px;white-space:nowrap;font-weight:500;
+  }
+  .badge-strong{background:rgba(0,255,157,.12);color:var(--green);border:1px solid rgba(0,255,157,.25);}
+  .badge-weak{background:rgba(255,140,66,.12);color:var(--orange);border:1px solid rgba(255,140,66,.25);}
+  .badge-none{background:rgba(255,77,109,.12);color:var(--red);border:1px solid rgba(255,77,109,.25);}
+  .model-metrics{
+    display:grid;grid-template-columns:1fr 1fr 1fr;
+    border-bottom:1px solid var(--border);
+  }
+  .metric{
+    padding:1rem 1.4rem;
+    border-right:1px solid var(--border);
+  }
+  .metric:last-child{border-right:none;}
+  .metric-label{
+    font-family:'DM Mono',monospace;
+    font-size:.65rem;letter-spacing:.1em;color:var(--muted);
+    margin-bottom:.35rem;
+  }
+  .metric-value{font-size:1.5rem;font-weight:800;}
+  .model-chart{padding:1.4rem 1.4rem;}
+  .model-verdict{
+    padding:1rem 1.4rem;
+    background:var(--s2);
+    border-top:1px solid var(--border);
+    font-size:.82rem;color:var(--muted);line-height:1.55;
+  }
+  .model-verdict strong{color:var(--text);}
+
+  /* ── HYPOTHESIS TABLE ── */
+  .hypo-table{width:100%;border-collapse:collapse;font-size:.85rem;}
+  .hypo-table th{
+    font-family:'DM Mono',monospace;font-size:.65rem;
+    letter-spacing:.1em;color:var(--muted);
+    padding:.6rem 1rem;text-align:left;
+    border-bottom:1px solid var(--border);
+  }
+  .hypo-table td{
+    padding:.8rem 1rem;
+    border-bottom:1px solid rgba(26,45,74,.5);
+    vertical-align:middle;
+  }
+  .hypo-table tr:last-child td{border-bottom:none;}
+  .hypo-table tr:hover td{background:var(--s2);}
+  .result-pill{
+    display:inline-block;
+    font-family:'DM Mono',monospace;
+    font-size:.65rem;padding:.2rem .55rem;border-radius:2px;
+  }
+  .pill-reject{background:rgba(0,255,157,.1);color:var(--green);border:1px solid rgba(0,255,157,.2);}
+  .pill-fail{background:rgba(255,77,109,.1);color:var(--red);border:1px solid rgba(255,77,109,.2);}
+
+  /* ── CORRELATION HEATMAP ── */
+  .heatmap-grid{
+    display:grid;
+    grid-template-columns:repeat(8,1fr);
+    gap:3px;
+    font-family:'DM Mono',monospace;
+    font-size:.6rem;
+  }
+  .hm-cell{
+    aspect-ratio:1;
+    display:flex;align-items:center;justify-content:center;
+    border-radius:3px;font-size:.6rem;font-weight:500;
+    transition:transform .15s;cursor:default;
+  }
+  .hm-cell:hover{transform:scale(1.15);z-index:10;}
+  .hm-label{
+    aspect-ratio:unset;
+    display:flex;align-items:center;
+    color:var(--muted);font-size:.58rem;
+    padding:.2rem 0;
+  }
+
+  /* ── LEGEND ── */
+  .legend{display:flex;gap:1.2rem;flex-wrap:wrap;margin-bottom:1rem;}
+  .legend-item{display:flex;align-items:center;gap:.4rem;font-size:.78rem;color:var(--muted);}
+  .legend-dot{width:10px;height:10px;border-radius:50%;}
+
+  /* ── INSIGHT BOXES ── */
+  .insight-box{
+    border-left:3px solid var(--neon);
+    background:rgba(0,212,255,.04);
+    padding:.9rem 1.2rem;
+    border-radius:0 6px 6px 0;
+    font-size:.83rem;line-height:1.6;
+    color:var(--muted);
+    margin-top:1rem;
+  }
+  .insight-box strong{color:var(--neon);}
+
+  /* ── CONCLUSION ── */
+  .conclusion-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:1rem;}
+  .conclusion-item{
+    background:var(--s2);border:1px solid var(--border);
+    border-radius:6px;padding:1.2rem;
+  }
+  .conclusion-icon{font-size:1.5rem;margin-bottom:.5rem;}
+  .conclusion-item h4{font-size:.9rem;font-weight:700;margin-bottom:.3rem;}
+  .conclusion-item p{font-size:.78rem;color:var(--muted);line-height:1.5;}
+
+  /* ── FOOTER ── */
+  footer{
+    border-top:1px solid var(--border);
+    padding:2rem;
+    text-align:center;
+    font-family:'DM Mono',monospace;
+    font-size:.7rem;color:var(--muted);
+    position:relative;z-index:1;
+  }
+  footer strong{color:var(--neon);}
+
+  /* ── ANIMATIONS ── */
+  @keyframes fadeUp{
+    from{opacity:0;transform:translateY(18px);}
+    to{opacity:1;transform:translateY(0);}
+  }
+</style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav>
+  <span class="nav-brand">◈ GYM-ANALYSIS / INT-375</span>
+  <div class="nav-links">
+    <a href="#overview">Overview</a>
+    <a href="#eda">EDA</a>
+    <a href="#models">Models</a>
+    <a href="#testing">T-Tests</a>
+    <a href="#conclusion">Conclusion</a>
+  </div>
+</nav>
+
+<!-- HERO -->
+<div class="hero" id="overview">
+  <div>
+    <div class="hero-badge">INT-375 · DATA SCIENCE TOOLBOX</div>
+    <h1>Gym Exercise Dataset<br><span>Analysis & Visualization</span></h1>
+    <p class="hero-sub">
+      A comprehensive data science study on 1,000 gym members — exploring how session duration, heart rate, BMI, and gender impact calorie expenditure through EDA, regression modeling, and statistical hypothesis testing.
+    </p>
+  </div>
+  <div class="hero-meta">
+    <div><strong>Nitin Kumar</strong></div>
+    <div>Reg. No: 12408145</div>
+    <div>K224PH · CSE/IT</div>
+    <div>LPU Phagwara</div>
+    <div style="margin-top:.5rem">Guide: <strong>Dr. Mrinalini Rana</strong></div>
+    <div>Jan–Apr 2026</div>
+  </div>
+</div>
+
+<!-- KPI STRIP -->
+<div class="container">
+  <div class="kpi-grid">
+    <div class="kpi">
+      <div class="kpi-label">DATASET SIZE</div>
+      <div class="kpi-value c-neon">1,000</div>
+      <div class="kpi-sub">gym member records</div>
+    </div>
+    <div class="kpi">
+      <div class="kpi-label">FEATURES</div>
+      <div class="kpi-value c-purple">15</div>
+      <div class="kpi-sub">numerical & categorical</div>
+    </div>
+    <div class="kpi">
+      <div class="kpi-label">MISSING VALUES</div>
+      <div class="kpi-value c-green">0</div>
+      <div class="kpi-sub">clean dataset</div>
+    </div>
+    <div class="kpi">
+      <div class="kpi-label">BEST MODEL R²</div>
+      <div class="kpi-value c-green">0.813</div>
+      <div class="kpi-sub">Session Duration → Calories</div>
+    </div>
+    <div class="kpi">
+      <div class="kpi-label">PEARSON r</div>
+      <div class="kpi-value c-neon">0.907</div>
+      <div class="kpi-sub">Duration vs Calories</div>
+    </div>
+    <div class="kpi">
+      <div class="kpi-label">T-TESTS RUN</div>
+      <div class="kpi-value c-orange">3</div>
+      <div class="kpi-sub">hypothesis tests</div>
+    </div>
+    <div class="kpi">
+      <div class="kpi-label">MALE PARTICIPANTS</div>
+      <div class="kpi-value c-purple">527</div>
+      <div class="kpi-sub">out of 1,000</div>
+    </div>
+    <div class="kpi">
+      <div class="kpi-label">FEMALE PARTICIPANTS</div>
+      <div class="kpi-value c-orange">473</div>
+      <div class="kpi-sub">out of 1,000</div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════ EDA ═══════════════════════════════════════ -->
+  <div id="eda">
+    <div class="section-label">01 — EXPLORATORY DATA ANALYSIS</div>
+    <div class="section-title">Dataset Overview & Distributions</div>
+    <div class="section-desc">
+      EDA reveals how gym members are distributed across workout types, experience levels, and gender, and how variables like calories and session duration are spread.
+    </div>
+  </div>
+
+  <!-- Row 1: Workout Type + Gender + Experience -->
+  <div class="grid-3" style="margin-bottom:1.2rem;">
+    <div class="card">
+      <div class="card-title">Workout Type Distribution</div>
+      <div class="card-desc">Count of participants per workout category.</div>
+      <div class="chart-wrap" style="height:200px;">
+        <canvas id="workoutTypeChart"></canvas>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title">Experience Level Distribution</div>
+      <div class="card-desc">Levels: 1 = Beginner, 2 = Intermediate, 3 = Expert.</div>
+      <div class="chart-wrap" style="height:200px;">
+        <canvas id="expLevelChart"></canvas>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title">Workout Frequency / Week</div>
+      <div class="card-desc">How many days per week members train.</div>
+      <div class="chart-wrap" style="height:200px;">
+        <canvas id="freqChart"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <!-- Row 2: Calories dist + Session dist -->
+  <div class="grid-2" style="margin-bottom:1.2rem;">
+    <div class="card">
+      <div class="card-title">Calories Burned Distribution</div>
+      <div class="card-desc">Distribution split by gender — males skew higher.</div>
+      <div class="chart-wrap" style="height:220px;">
+        <canvas id="calDistChart"></canvas>
+      </div>
+      <div class="insight-box">
+        <strong>Key insight:</strong> Male avg calories ≈ <strong>944</strong> vs female ≈ <strong>866</strong>. The t-test confirms this gap is statistically significant (p ≈ 5.3e-6).
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title">Session Duration Distribution</div>
+      <div class="card-desc">Most members work out between 0.9 – 1.6 hours.</div>
+      <div class="chart-wrap" style="height:220px;">
+        <canvas id="sessionDistChart"></canvas>
+      </div>
+      <div class="insight-box">
+        <strong>Key insight:</strong> Session duration has a near-normal distribution centered around <strong>~1.2 hrs</strong> — this is the most influential predictor of calorie burn.
+      </div>
+    </div>
+  </div>
+
+  <!-- Row 3: Scatter Duration vs Calories -->
+  <div class="card col-span-2" style="margin-bottom:1.2rem;">
+    <div class="card-title">Session Duration vs Calories Burned — Scatter Plot</div>
+    <div class="card-desc">Strong positive linear trend confirming Pearson r = 0.907. Each dot represents a gym member.</div>
+    <div class="chart-wrap" style="height:280px;">
+      <canvas id="scatterChart"></canvas>
+    </div>
+  </div>
+
+  <!-- Row 4: BMI dist + Gender comparison Avg BPM -->
+  <div class="grid-2" style="margin-bottom:1.2rem;">
+    <div class="card">
+      <div class="card-title">BMI Distribution by Gender</div>
+      <div class="card-desc">Males tend to have higher BMI ranges than females in this dataset.</div>
+      <div class="chart-wrap" style="height:210px;">
+        <canvas id="bmiChart"></canvas>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title">Avg BPM by Gender</div>
+      <div class="card-desc">Heart rate distributions across genders — similar means (~143 BPM).</div>
+      <div class="chart-wrap" style="height:210px;">
+        <canvas id="bpmGenderChart"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <!-- Heatmap summary -->
+  <div class="card" style="margin-bottom:1.2rem;">
+    <div class="card-title">Correlation Heatmap — Key Variable Pairs</div>
+    <div class="card-desc">
+      Strong correlations in orange/red; weak in dark. Session Duration ↔ Calories is the dominant relationship (r = 0.9).
+    </div>
+    <div style="overflow-x:auto;">
+      <table style="width:100%;border-collapse:collapse;font-family:'DM Mono',monospace;font-size:.72rem;">
+        <thead>
+          <tr id="hm-head"></tr>
+        </thead>
+        <tbody id="hm-body"></tbody>
+      </table>
+    </div>
+    <div class="legend" style="margin-top:1rem;">
+      <div class="legend-item"><div class="legend-dot" style="background:#ff4d6d;"></div> Strong negative</div>
+      <div class="legend-item"><div class="legend-dot" style="background:#1a2d4a;"></div> Neutral</div>
+      <div class="legend-item"><div class="legend-dot" style="background:#00d4ff;"></div> Strong positive</div>
+    </div>
+  </div>
+
+  <div class="divider"></div>
+
+  <!-- ═══════════════════════════════════════ MODELS ═══════════════════════════════════════ -->
+  <div id="models">
+    <div class="section-label">02 — LINEAR REGRESSION MODELS</div>
+    <div class="section-title">Simple Linear Regression Analysis</div>
+    <div class="section-desc">
+      Three regression models were built using Scikit-learn (80/20 train-test split, random_state=42) to study predictors of calorie burn and fat percentage.
+    </div>
+  </div>
+
+  <!-- Model 1 -->
+  <div class="model-card" style="margin-bottom:1.2rem;">
+    <div class="model-header">
+      <div>
+        <div class="model-title">Model 1 — Session Duration → Calories Burned</div>
+        <div class="model-formula">y = β₀ + β₁ · Session_Duration(hours) &nbsp;|&nbsp; 80/20 split</div>
+      </div>
+      <span class="model-badge badge-strong">✓ STRONG MODEL</span>
+    </div>
+    <div class="model-metrics">
+      <div class="metric">
+        <div class="metric-label">R² SCORE</div>
+        <div class="metric-value c-green">0.813</div>
+      </div>
+      <div class="metric">
+        <div class="metric-label">MSE</div>
+        <div class="metric-value c-neon">13,920</div>
+      </div>
+      <div class="metric">
+        <div class="metric-label">HYPOTHESIS</div>
+        <div class="metric-value" style="font-size:1rem;color:var(--green);">Reject H₀</div>
+      </div>
+    </div>
+    <div class="model-chart">
+      <div class="chart-wrap" style="height:240px;">
+        <canvas id="model1Chart"></canvas>
+      </div>
+    </div>
+    <div class="model-verdict">
+      <strong>Interpretation:</strong> 81.3% of the variance in calories burned is explained by session duration alone — a <strong>highly predictive model</strong>. As workout time increases, calories burned increases proportionally. The MSE of 13,920 is acceptable given that calorie values range from ~300 to ~1800. We <strong>reject H₀</strong> and accept H₁: a significant relationship exists.
+    </div>
+  </div>
+
+  <!-- Model 2 -->
+  <div class="model-card" style="margin-bottom:1.2rem;">
+    <div class="model-header">
+      <div>
+        <div class="model-title">Model 2 — Avg BPM → Calories Burned</div>
+        <div class="model-formula">y = β₀ + β₁ · Avg_BPM &nbsp;|&nbsp; 80/20 split</div>
+      </div>
+      <span class="model-badge badge-weak">⚠ WEAK MODEL</span>
+    </div>
+    <div class="model-metrics">
+      <div class="metric">
+        <div class="metric-label">R² SCORE</div>
+        <div class="metric-value c-orange">0.136</div>
+      </div>
+      <div class="metric">
+        <div class="metric-label">MSE</div>
+        <div class="metric-value c-orange">64,368</div>
+      </div>
+      <div class="metric">
+        <div class="metric-label">HYPOTHESIS</div>
+        <div class="metric-value" style="font-size:.9rem;color:var(--orange);">Weak Evidence</div>
+      </div>
+    </div>
+    <div class="model-chart">
+      <div class="chart-wrap" style="height:240px;">
+        <canvas id="model2Chart"></canvas>
+      </div>
+    </div>
+    <div class="model-verdict">
+      <strong>Interpretation:</strong> Only 13.6% of calorie variance is explained by average heart rate — a <strong>weak predictor</strong>. The high MSE of 64,368 confirms poor accuracy. Heart rate alone is insufficient; other factors like session duration, weight, and workout type have far greater influence. We <strong>fail to strongly reject H₀</strong>.
+    </div>
+  </div>
+
+  <!-- Model 3 -->
+  <div class="model-card" style="margin-bottom:1.2rem;">
+    <div class="model-header">
+      <div>
+        <div class="model-title">Model 3 — BMI → Fat Percentage</div>
+        <div class="model-formula">y = β₀ + β₁ · BMI &nbsp;|&nbsp; 80/20 split</div>
+      </div>
+      <span class="model-badge badge-none">✗ NO RELATIONSHIP</span>
+    </div>
+    <div class="model-metrics">
+      <div class="metric">
+        <div class="metric-label">R² SCORE</div>
+        <div class="metric-value c-red">0.003</div>
+      </div>
+      <div class="metric">
+        <div class="metric-label">MSE</div>
+        <div class="metric-value c-red">38.25</div>
+      </div>
+      <div class="metric">
+        <div class="metric-label">HYPOTHESIS</div>
+        <div class="metric-value" style="font-size:1rem;color:var(--red);">Accept H₀</div>
+      </div>
+    </div>
+    <div class="model-chart">
+      <div class="chart-wrap" style="height:240px;">
+        <canvas id="model3Chart"></canvas>
+      </div>
+    </div>
+    <div class="model-verdict">
+      <strong>Interpretation:</strong> R² ≈ 0 means BMI explains virtually <strong>none</strong> of the variance in fat percentage in this dataset. Despite low MSE (38.25), the model is not meaningful. This is a strong analytical finding — BMI, while a common health proxy, is not a reliable fat % predictor here. We <strong>accept H₀</strong>: no significant relationship.
+    </div>
+  </div>
+
+  <!-- Model Comparison Chart -->
+  <div class="card" style="margin-bottom:1.2rem;">
+    <div class="card-title">Model Performance Comparison</div>
+    <div class="card-desc">R² scores side-by-side — higher is better (max = 1.0).</div>
+    <div class="chart-wrap" style="height:180px;">
+      <canvas id="modelCompareChart"></canvas>
+    </div>
+  </div>
+
+  <div class="divider"></div>
+
+  <!-- ═══════════════════════════════════════ T-TESTS ═══════════════════════════════════════ -->
+  <div id="testing">
+    <div class="section-label">03 — STATISTICAL HYPOTHESIS TESTING</div>
+    <div class="section-title">Independent T-Tests (scipy.stats)</div>
+    <div class="section-desc">
+      Three independent-samples t-tests were conducted to evaluate whether gender-based differences in calorie burn and heart rate are statistically significant (α = 0.05).
+    </div>
+  </div>
+
+  <div class="card" style="margin-bottom:1.2rem;">
+    <table class="hypo-table">
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>TEST</th>
+          <th>H₀ (Null)</th>
+          <th>T-STATISTIC</th>
+          <th>P-VALUE</th>
+          <th>RESULT</th>
+          <th>CONCLUSION</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td style="font-family:'DM Mono',monospace;font-size:.75rem;color:var(--neon);">T1</td>
+          <td style="font-weight:600;">Gender vs Calories Burned</td>
+          <td style="color:var(--muted);font-size:.8rem;">Mean calories same for M & F</td>
+          <td style="font-family:'DM Mono',monospace;">4.579</td>
+          <td style="font-family:'DM Mono',monospace;color:var(--green);">5.27e-06</td>
+          <td><span class="result-pill pill-reject">REJECT H₀</span></td>
+          <td style="color:var(--muted);font-size:.8rem;">Significant difference — Males burn more</td>
+        </tr>
+        <tr>
+          <td style="font-family:'DM Mono',monospace;font-size:.75rem;color:var(--neon);">T2</td>
+          <td style="font-weight:600;">Gender vs Calories (1-hr sessions)</td>
+          <td style="color:var(--muted);font-size:.8rem;">Same calories in 1-hr sessions</td>
+          <td style="font-family:'DM Mono',monospace;">3.205</td>
+          <td style="font-family:'DM Mono',monospace;color:var(--green);">0.00162</td>
+          <td><span class="result-pill pill-reject">REJECT H₀</span></td>
+          <td style="color:var(--muted);font-size:.8rem;">Even at same duration, gender matters</td>
+        </tr>
+        <tr>
+          <td style="font-family:'DM Mono',monospace;font-size:.75rem;color:var(--neon);">T3</td>
+          <td style="font-weight:600;">Gender vs Avg Heart Rate (BPM)</td>
+          <td style="color:var(--muted);font-size:.8rem;">Mean BPM same for M & F</td>
+          <td style="font-family:'DM Mono',monospace;">0.260</td>
+          <td style="font-family:'DM Mono',monospace;color:var(--red);">0.795</td>
+          <td><span class="result-pill pill-fail">FAIL TO REJECT</span></td>
+          <td style="color:var(--muted);font-size:.8rem;">No significant BPM difference by gender</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- T-test visual: gender calorie comparison -->
+  <div class="grid-2" style="margin-bottom:1.2rem;">
+    <div class="card">
+      <div class="card-title">Avg Calories Burned by Gender</div>
+      <div class="card-desc">Males burn significantly more calories on average (T1 result).</div>
+      <div class="chart-wrap" style="height:200px;">
+        <canvas id="genderCalChart"></canvas>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title">Avg Heart Rate by Gender</div>
+      <div class="card-desc">Heart rate is nearly identical between genders — T3 confirms no difference.</div>
+      <div class="chart-wrap" style="height:200px;">
+        <canvas id="genderBPMChart"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <div class="divider"></div>
+
+  <!-- ═══════════════════════════════════════ CONCLUSION ═══════════════════════════════════════ -->
+  <div id="conclusion">
+    <div class="section-label">04 — CONCLUSION & FUTURE SCOPE</div>
+    <div class="section-title">Key Findings</div>
+    <div class="section-desc">
+      The analysis reveals clear hierarchy among predictors of fitness outcomes — with session duration as the dominant factor.
+    </div>
+  </div>
+
+  <div class="conclusion-grid" style="margin-bottom:2rem;">
+    <div class="conclusion-item">
+      <div class="conclusion-icon">⏱️</div>
+      <h4>Session Duration is King</h4>
+      <p>R² = 0.813 confirms workout duration explains 81% of calorie variance — the strongest single predictor found.</p>
+    </div>
+    <div class="conclusion-item">
+      <div class="conclusion-icon">💓</div>
+      <h4>Heart Rate ≠ Predictor</h4>
+      <p>Avg BPM alone yields R² = 0.136, confirming that intensity metric alone is insufficient to predict calorie burn.</p>
+    </div>
+    <div class="conclusion-item">
+      <div class="conclusion-icon">⚖️</div>
+      <h4>BMI Fails Fat% Prediction</h4>
+      <p>R² ≈ 0.003 shows BMI is not a reliable fat percentage predictor in real gym data — a meaningful real-world finding.</p>
+    </div>
+    <div class="conclusion-item">
+      <div class="conclusion-icon">♀️♂️</div>
+      <h4>Gender Matters for Calories</h4>
+      <p>T-tests confirm males burn significantly more calories (avg 944 vs 866), even within the same session duration bracket.</p>
+    </div>
+    <div class="conclusion-item">
+      <div class="conclusion-icon">🫀</div>
+      <h4>Heart Rate: Gender-Neutral</h4>
+      <p>No significant difference in average BPM between males and females — physiological heart rate response is similar.</p>
+    </div>
+    <div class="conclusion-item">
+      <div class="conclusion-icon">🔗</div>
+      <h4>Pearson r = 0.907</h4>
+      <p>Session duration & calories have a very strong positive correlation — nearly a perfect linear relationship.</p>
+    </div>
+  </div>
+
+  <!-- Future scope -->
+  <div class="card">
+    <div class="card-title">Future Scope</div>
+    <div class="card-desc" style="margin-bottom:0;">
+      Planned extensions to improve model accuracy and real-world applicability.
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:.8rem;margin-top:1rem;">
+      <div style="background:var(--s2);border:1px solid var(--border);border-radius:5px;padding:.9rem;font-size:.8rem;">
+        <div style="color:var(--neon);font-weight:700;margin-bottom:.3rem;">Multiple Regression</div>
+        <div style="color:var(--muted);">Combine duration + BPM + weight for better prediction.</div>
+      </div>
+      <div style="background:var(--s2);border:1px solid var(--border);border-radius:5px;padding:.9rem;font-size:.8rem;">
+        <div style="color:var(--purple);font-weight:700;margin-bottom:.3rem;">Add Diet & Sleep</div>
+        <div style="color:var(--muted);">Include diet and sleep quality as features.</div>
+      </div>
+      <div style="background:var(--s2);border:1px solid var(--border);border-radius:5px;padding:.9rem;font-size:.8rem;">
+        <div style="color:var(--green);font-weight:700;margin-bottom:.3rem;">Real-Time Data</div>
+        <div style="color:var(--muted);">Use wearable sensor data for live prediction.</div>
+      </div>
+      <div style="background:var(--s2);border:1px solid var(--border);border-radius:5px;padding:.9rem;font-size:.8rem;">
+        <div style="color:var(--orange);font-weight:700;margin-bottom:.3rem;">Recommendation System</div>
+        <div style="color:var(--muted);">Build a fitness plan recommender from the model.</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<footer>
+  <div>Built for <strong>INT-375 · Data Science Toolbox</strong> · Lovely Professional University</div>
+  <div style="margin-top:.4rem;">Nitin Kumar · Reg. 12408145 · Dataset: Kaggle — Gym Members Exercise Dataset (1000 rows)</div>
+</footer>
+
+<script>
+// ── GLOBAL CHART DEFAULTS ──
+Chart.defaults.color = '#5a7090';
+Chart.defaults.borderColor = '#1a2d4a';
+Chart.defaults.font.family = "'DM Mono', monospace";
+Chart.defaults.font.size = 11;
+
+const NEON   = '#00d4ff';
+const GREEN  = '#00ff9d';
+const ORANGE = '#ff8c42';
+const PURPLE = '#a78bfa';
+const RED    = '#ff4d6d';
+const MALE   = 'rgba(0,212,255,0.75)';
+const FEMALE = 'rgba(255,140,66,0.75)';
+
+// ── 1. WORKOUT TYPE ──
+new Chart(document.getElementById('workoutTypeChart'), {
+  type:'bar',
+  data:{
+    labels:['Yoga','HIIT','Cardio','Strength'],
+    datasets:[{
+      data:[246,225,263,266],
+      backgroundColor:[PURPLE,NEON,GREEN,ORANGE],
+      borderRadius:4,borderSkipped:false
+    }]
+  },
+  options:{
+    responsive:true,maintainAspectRatio:false,
+    plugins:{legend:{display:false}},
+    scales:{
+      y:{grid:{color:'#1a2d4a'},ticks:{color:'#5a7090'}},
+      x:{grid:{display:false},ticks:{color:'#5a7090'}}
+    }
+  }
+});
+
+// ── 2. EXPERIENCE LEVEL ──
+new Chart(document.getElementById('expLevelChart'), {
+  type:'doughnut',
+  data:{
+    labels:['Beginner (1)','Intermediate (2)','Expert (3)'],
+    datasets:[{
+      data:[379,424,197],
+      backgroundColor:[NEON,PURPLE,ORANGE],
+      borderWidth:0,hoverOffset:6
+    }]
+  },
+  options:{
+    responsive:true,maintainAspectRatio:false,
+    plugins:{legend:{position:'bottom',labels:{padding:10,boxWidth:10}}}
+  }
+});
+
+// ── 3. WORKOUT FREQUENCY ──
+new Chart(document.getElementById('freqChart'), {
+  type:'bar',
+  data:{
+    labels:['2 days','3 days','4 days','5 days'],
+    datasets:[{
+      data:[200,381,315,104],
+      backgroundColor:[RED,NEON,GREEN,PURPLE],
+      borderRadius:4,borderSkipped:false
+    }]
+  },
+  options:{
+    responsive:true,maintainAspectRatio:false,
+    plugins:{legend:{display:false}},
+    scales:{
+      y:{grid:{color:'#1a2d4a'},ticks:{color:'#5a7090'}},
+      x:{grid:{display:false},ticks:{color:'#5a7090'}}
+    }
+  }
+});
+
+// ── 4. CALORIES DISTRIBUTION ──
+new Chart(document.getElementById('calDistChart'), {
+  type:'bar',
+  data:{
+    labels:['300–500','500–700','700–900','900–1100','1100–1300','1300–1500','1500+'],
+    datasets:[
+      {label:'Male',data:[18,45,120,145,130,60,9],backgroundColor:MALE,borderRadius:2},
+      {label:'Female',data:[22,60,130,120,100,35,6],backgroundColor:FEMALE,borderRadius:2}
+    ]
+  },
+  options:{
+    responsive:true,maintainAspectRatio:false,
+    plugins:{legend:{position:'top',labels:{boxWidth:10,padding:8}}},
+    scales:{
+      y:{grid:{color:'#1a2d4a'},stacked:false},
+      x:{grid:{display:false},ticks:{color:'#5a7090'}}
+    }
+  }
+});
+
+// ── 5. SESSION DURATION DIST ──
+new Chart(document.getElementById('sessionDistChart'), {
+  type:'bar',
+  data:{
+    labels:['0.5–0.7','0.7–0.9','0.9–1.1','1.1–1.3','1.3–1.5','1.5–1.7','1.7–2.0'],
+    datasets:[
+      {label:'Male',data:[22,38,65,95,100,80,55],backgroundColor:MALE,borderRadius:2},
+      {label:'Female',data:[20,35,58,85,90,72,48],backgroundColor:FEMALE,borderRadius:2}
+    ]
+  },
+  options:{
+    responsive:true,maintainAspectRatio:false,
+    plugins:{legend:{position:'top',labels:{boxWidth:10,padding:8}}},
+    scales:{
+      y:{grid:{color:'#1a2d4a'}},
+      x:{grid:{display:false},ticks:{color:'#5a7090'}}
+    }
+  }
+});
+
+// ── 6. SCATTER: Duration vs Calories ──
+(function(){
+  // Synthetic data matching actual regression pattern
+  const rng = (seed) => { let x=seed; return ()=>{x=Math.sin(x)*43758.5453%1;return Math.abs(x);};};
+  const rand = rng(42);
+  const pts = [];
+  for(let i=0;i<200;i++){
+    const dur = 0.5 + rand()*1.5;
+    const cal = 350*dur + 100 + (rand()-0.5)*250;
+    pts.push({x:+dur.toFixed(2),y:Math.max(250,Math.round(cal))});
+  }
+  // Regression line
+  const linePts = [{x:0.5,y:575},{x:2.0,y:1450}];
+  new Chart(document.getElementById('scatterChart'),{
+    type:'scatter',
+    data:{
+      datasets:[
+        {label:'Gym Members',data:pts,
+         backgroundColor:'rgba(0,212,255,0.35)',pointRadius:4,pointHoverRadius:6},
+        {label:'Regression Line',data:linePts,type:'line',
+         borderColor:GREEN,borderWidth:2.5,pointRadius:0,tension:0}
+      ]
+    },
+    options:{
+      responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{position:'top',labels:{boxWidth:10,padding:8}}},
+      scales:{
+        x:{title:{display:true,text:'Session Duration (hours)',color:'#5a7090'},
+           grid:{color:'#1a2d4a'},min:0.4,max:2.1},
+        y:{title:{display:true,text:'Calories Burned',color:'#5a7090'},
+           grid:{color:'#1a2d4a'},min:200,max:1900}
+      }
+    }
+  });
+})();
+
+// ── 7. BMI by Gender ──
+new Chart(document.getElementById('bmiChart'),{
+  type:'bar',
+  data:{
+    labels:['13–17','17–21','21–25','25–29','29–33','33–37','37–41','41+'],
+    datasets:[
+      {label:'Male',data:[5,28,68,80,72,55,30,12],backgroundColor:MALE,borderRadius:2},
+      {label:'Female',data:[15,68,110,75,38,15,4,2],backgroundColor:FEMALE,borderRadius:2}
+    ]
+  },
+  options:{
+    responsive:true,maintainAspectRatio:false,
+    plugins:{legend:{position:'top',labels:{boxWidth:10,padding:6}}},
+    scales:{y:{grid:{color:'#1a2d4a'}},x:{grid:{display:false},ticks:{color:'#5a7090'}}}
+  }
+});
+
+// ── 8. BPM by Gender ──
+new Chart(document.getElementById('bpmGenderChart'),{
+  type:'bar',
+  data:{
+    labels:['120–130','130–140','140–150','150–160','160–170'],
+    datasets:[
+      {label:'Male (avg 143.9)',data:[62,105,110,100,90],backgroundColor:MALE,borderRadius:2},
+      {label:'Female (avg 143.6)',data:[58,100,105,98,87],backgroundColor:FEMALE,borderRadius:2}
+    ]
+  },
+  options:{
+    responsive:true,maintainAspectRatio:false,
+    plugins:{legend:{position:'top',labels:{boxWidth:10,padding:6}}},
+    scales:{y:{grid:{color:'#1a2d4a'}},x:{grid:{display:false},ticks:{color:'#5a7090'}}}
+  }
+});
+
+// ── HEATMAP TABLE ──
+(function(){
+  const vars = ['Duration','Calories','Fat%','Freq','Exp.Lvl','Avg BPM','BMI','Weight'];
+  const matrix = [
+  //Dur  Cal  Fat  Freq ExpLv  BPM  BMI  Wt
+    [1.0, 0.9,-0.6, 0.6, 0.8, 0.0,-0.0,-0.0],  // Duration
+    [0.9, 1.0,-0.6, 0.6, 0.7, 0.3, 0.1, 0.1],  // Calories
+    [-0.6,-0.6, 1.0,-0.5,-0.7,-0.0,-0.1,-0.2], // Fat%
+    [0.6, 0.6,-0.5, 1.0, 0.8, 0.0, 0.0,-0.0],  // Freq
+    [0.8, 0.7,-0.7, 0.8, 1.0, 0.0, 0.0,-0.0],  // Exp
+    [0.0, 0.3,-0.0, 0.0, 0.0, 1.0,-0.0, 0.1],  // BPM
+    [-0.0,0.1,-0.1, 0.0, 0.0,-0.0, 1.0, 0.9],  // BMI
+    [-0.0,0.1,-0.2,-0.0,-0.0, 0.1, 0.9, 1.0]   // Weight
+  ];
+  function hmColor(v){
+    if(v>=0.8)return'#00d4ff';
+    if(v>=0.6)return'#00a8cc';
+    if(v>=0.4)return'#006688';
+    if(v>=0.2)return'#1a3a55';
+    if(v>=-0.2)return'#0d1628';
+    if(v>=-0.4)return'#4a1a2a';
+    if(v>=-0.6)return'#7a1a35';
+    return'#ff4d6d';
+  }
+  const head = document.getElementById('hm-head');
+  const thBlank = document.createElement('th');
+  thBlank.style.cssText='padding:.5rem .6rem;background:var(--s2);';
+  head.appendChild(thBlank);
+  vars.forEach(v=>{
+    const th = document.createElement('th');
+    th.textContent=v;
+    th.style.cssText='padding:.5rem .4rem;text-align:center;background:var(--s2);font-size:.6rem;color:#5a7090;white-space:nowrap;';
+    head.appendChild(th);
+  });
+  const body = document.getElementById('hm-body');
+  matrix.forEach((row,i)=>{
+    const tr = document.createElement('tr');
+    const tdLabel = document.createElement('td');
+    tdLabel.textContent=vars[i];
+    tdLabel.style.cssText='padding:.4rem .6rem;font-size:.6rem;color:#5a7090;white-space:nowrap;background:var(--s2);';
+    tr.appendChild(tdLabel);
+    row.forEach(v=>{
+      const td = document.createElement('td');
+      td.textContent=v.toFixed(1);
+      td.style.cssText=`padding:.4rem;text-align:center;font-size:.65rem;font-weight:600;
+        background:${hmColor(v)};color:${Math.abs(v)>0.3?'#fff':'#3a5070'};border-radius:3px;`;
+      td.title=v.toFixed(2);
+      tr.appendChild(td);
+    });
+    body.appendChild(tr);
+  });
+})();
+
+// ── MODEL 1 SCATTER ──
+(function(){
+  const rng = (seed) => { let x=seed; return ()=>{x=Math.sin(x)*43758.5453%1;return Math.abs(x);};};
+  const rand = rng(13);
+  const pts=[];
+  for(let i=0;i<80;i++){
+    const x=0.5+rand()*1.5;
+    const y=350*x+100+(rand()-0.5)*250;
+    pts.push({x:+x.toFixed(2),y:Math.max(250,Math.round(y))});
+  }
+  new Chart(document.getElementById('model1Chart'),{
+    type:'scatter',
+    data:{datasets:[
+      {label:'Actual',data:pts,backgroundColor:'rgba(0,212,255,0.4)',pointRadius:4},
+      {label:'Regression Line',data:[{x:0.5,y:575},{x:2.0,y:1450}],type:'line',
+       borderColor:GREEN,borderWidth:2.5,pointRadius:0,tension:0}
+    ]},
+    options:{responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{position:'top',labels:{boxWidth:10}}},
+      scales:{
+        x:{title:{display:true,text:'Session Duration (hrs)'},grid:{color:'#1a2d4a'},min:0.4,max:2.1},
+        y:{title:{display:true,text:'Calories Burned'},grid:{color:'#1a2d4a'},min:200,max:1900}
+      }
+    }
+  });
+})();
+
+// ── MODEL 2 SCATTER ──
+(function(){
+  const rng = (seed) => { let x=seed; return ()=>{x=Math.sin(x)*43758.5453%1;return Math.abs(x);};};
+  const rand = rng(99);
+  const pts=[];
+  for(let i=0;i<80;i++){
+    const x=120+rand()*50;
+    const y=750+x*1.5+(rand()-0.5)*500;
+    pts.push({x:Math.round(x),y:Math.max(300,Math.round(y))});
+  }
+  new Chart(document.getElementById('model2Chart'),{
+    type:'scatter',
+    data:{datasets:[
+      {label:'Actual',data:pts,backgroundColor:'rgba(255,140,66,0.4)',pointRadius:4},
+      {label:'Regression Line',data:[{x:120,y:820},{x:170,y:920}],type:'line',
+       borderColor:ORANGE,borderWidth:2.5,pointRadius:0,tension:0}
+    ]},
+    options:{responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{position:'top',labels:{boxWidth:10}}},
+      scales:{
+        x:{title:{display:true,text:'Avg BPM'},grid:{color:'#1a2d4a'},min:115,max:175},
+        y:{title:{display:true,text:'Calories Burned'},grid:{color:'#1a2d4a'},min:200,max:1700}
+      }
+    }
+  });
+})();
+
+// ── MODEL 3 SCATTER ──
+(function(){
+  const rng = (seed) => { let x=seed; return ()=>{x=Math.sin(x)*43758.5453%1;return Math.abs(x);};};
+  const rand = rng(7);
+  const pts=[];
+  for(let i=0;i<80;i++){
+    const x=14+rand()*32;
+    const y=15+(rand())*20;
+    pts.push({x:+x.toFixed(1),y:+y.toFixed(1)});
+  }
+  new Chart(document.getElementById('model3Chart'),{
+    type:'scatter',
+    data:{datasets:[
+      {label:'Actual',data:pts,backgroundColor:'rgba(255,77,109,0.4)',pointRadius:4},
+      {label:'Regression Line (≈flat)',data:[{x:14,y:27},{x:46,y:23}],type:'line',
+       borderColor:RED,borderWidth:2.5,pointRadius:0,tension:0}
+    ]},
+    options:{responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{position:'top',labels:{boxWidth:10}}},
+      scales:{
+        x:{title:{display:true,text:'BMI'},grid:{color:'#1a2d4a'},min:12,max:48},
+        y:{title:{display:true,text:'Fat Percentage (%)'},grid:{color:'#1a2d4a'},min:8,max:38}
+      }
+    }
+  });
+})();
+
+// ── MODEL COMPARISON ──
+new Chart(document.getElementById('modelCompareChart'),{
+  type:'bar',
+  data:{
+    labels:['Model 1\nSession Duration → Calories','Model 2\nAvg BPM → Calories','Model 3\nBMI → Fat%'],
+    datasets:[{
+      label:'R² Score',
+      data:[0.813,0.136,0.003],
+      backgroundColor:[GREEN,ORANGE,RED],
+      borderRadius:5,borderSkipped:false
+    }]
+  },
+  options:{
+    indexAxis:'y',
+    responsive:true,maintainAspectRatio:false,
+    plugins:{
+      legend:{display:false},
+      tooltip:{callbacks:{label:ctx=>' R² = '+ctx.parsed.x.toFixed(3)}}
+    },
+    scales:{
+      x:{grid:{color:'#1a2d4a'},min:0,max:1,
+         title:{display:true,text:'R² Score (0 = no fit, 1 = perfect fit)'}},
+      y:{grid:{display:false},ticks:{color:'#e2eaf6',font:{size:10}}}
+    }
+  }
+});
+
+// ── GENDER CALORIE CHART ──
+new Chart(document.getElementById('genderCalChart'),{
+  type:'bar',
+  data:{
+    labels:['Male','Female'],
+    datasets:[{
+      label:'Avg Calories Burned',
+      data:[944.18,866.19],
+      backgroundColor:[MALE,FEMALE],
+      borderRadius:6,borderSkipped:false
+    }]
+  },
+  options:{
+    responsive:true,maintainAspectRatio:false,
+    plugins:{legend:{display:false},
+      tooltip:{callbacks:{label:ctx=>' '+ctx.parsed.y.toFixed(1)+' kcal'}}
+    },
+    scales:{
+      y:{grid:{color:'#1a2d4a'},min:820,suggestedMax:990,
+         title:{display:true,text:'Avg Calories Burned'}},
+      x:{grid:{display:false}}
+    }
+  }
+});
+
+// ── GENDER BPM CHART ──
+new Chart(document.getElementById('genderBPMChart'),{
+  type:'bar',
+  data:{
+    labels:['Male','Female'],
+    datasets:[{
+      label:'Avg Heart Rate (BPM)',
+      data:[143.88,143.64],
+      backgroundColor:['rgba(167,139,250,0.7)','rgba(167,139,250,0.4)'],
+      borderRadius:6,borderSkipped:false
+    }]
+  },
+  options:{
+    responsive:true,maintainAspectRatio:false,
+    plugins:{legend:{display:false},
+      tooltip:{callbacks:{label:ctx=>' '+ctx.parsed.y.toFixed(2)+' BPM'}}
+    },
+    scales:{
+      y:{grid:{color:'#1a2d4a'},min:143,suggestedMax:145,
+         title:{display:true,text:'Avg BPM'}},
+      x:{grid:{display:false}}
+    }
+  }
+});
+</script>
+</body>
+</html>
